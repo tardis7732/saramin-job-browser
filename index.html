@@ -71,6 +71,18 @@
       line-height: 1.25;
     }
 
+    .title-block {
+      display: grid;
+      gap: 5px;
+      min-width: 240px;
+    }
+
+    .updated-at {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
     .stats {
       display: flex;
       flex-wrap: wrap;
@@ -357,6 +369,7 @@
         flex-direction: column;
       }
       h1 { font-size: 18px; }
+      .updated-at { font-size: 12px; }
     }
   </style>
 </head>
@@ -364,7 +377,10 @@
   <div class="app">
     <header>
       <div class="header-inner">
-        <h1>영상 AI VFX 채용 공고 회사정보 정렬</h1>
+        <div class="title-block">
+          <h1>영상 AI VFX 채용 공고 회사정보 정렬</h1>
+          <div class="updated-at">마지막 업데이트: 2026-08-20 03:20 KST</div>
+        </div>
         <div class="stats" aria-label="데이터 요약">
           <div class="stat"><span>공고</span><strong id="jobTotal">0</strong></div>
           <div class="stat"><span>회사</span><strong id="companyTotal">0</strong></div>
