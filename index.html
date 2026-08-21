@@ -356,6 +356,10 @@
       text-decoration: underline;
     }
 
+    .deadline-short {
+      display: none;
+    }
+
     .pagination {
       display: flex;
       align-items: center;
@@ -497,14 +501,13 @@
 
       tbody {
         display: grid;
-        gap: 10px;
+        gap: 6px;
       }
 
       tbody tr {
         border: 1px solid var(--line);
-        border-radius: 8px;
+        border-radius: 6px;
         background: var(--panel);
-        box-shadow: var(--shadow);
         overflow: hidden;
       }
 
@@ -514,11 +517,13 @@
 
       td {
         display: grid;
-        grid-template-columns: 86px minmax(0, 1fr);
-        gap: 8px;
-        padding: 8px 10px;
+        grid-template-columns: 58px minmax(0, 1fr);
+        gap: 6px;
+        padding: 5px 8px;
         border-bottom: 1px solid var(--line);
-        min-height: 36px;
+        min-height: 26px;
+        font-size: 12px;
+        line-height: 1.28;
       }
 
       td:last-child {
@@ -528,12 +533,35 @@
       td::before {
         content: attr(data-label);
         color: var(--muted);
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 700;
       }
 
       td.num {
         text-align: left;
+      }
+
+      td.mobile-hide {
+        display: none;
+      }
+
+      .title-cell, .company-cell {
+        font-size: 12px;
+        font-weight: 650;
+      }
+
+      .badge {
+        min-height: 20px;
+        padding: 2px 6px;
+        font-size: 11px;
+      }
+
+      .deadline-full {
+        display: none;
+      }
+
+      .deadline-short {
+        display: inline;
       }
 
       .links {
@@ -548,7 +576,7 @@
       <div class="header-inner">
         <div class="title-block">
           <h1>영상 AI VFX 채용 공고 회사정보 정렬</h1>
-          <div class="updated-at">마지막 업데이트: 2026-08-21 09:24 KST</div>
+          <div class="updated-at">마지막 업데이트: 2026-08-21 09:48 KST</div>
         </div>
         <div class="stats" aria-label="데이터 요약">
           <div class="stat"><span>공고</span><strong id="jobTotal">0</strong></div>
@@ -651,8 +679,8 @@
 
     const columns = {
       jobs: [
-        ["original", "No", "num"],
-        ["category", "카테고리", ""],
+        ["original", "No", "num mobile-hide"],
+        ["category", "카테고리", "mobile-hide"],
         ["title", "제목", "title-cell"],
         ["company", "회사", "company-cell"],
         ["deadlineValue", "마감", ""],
@@ -662,8 +690,8 @@
         ["location", "회사위치", "location-cell"]
       ],
       companies: [
-        ["original", "No", "num"],
-        ["category", "카테고리", ""],
+        ["original", "No", "num mobile-hide"],
+        ["category", "카테고리", "mobile-hide"],
         ["company", "회사", "company-cell"],
         ["postingCount", "공고수", "num"],
         ["employeeCount", "사원수", "num"],
@@ -750,13 +778,26 @@
       return `<a class="text-link" href="${escapeHtml(href)}" target="_blank" rel="noreferrer">${escapeHtml(value)}</a>`;
     }
 
+    function formatDeadlineShort(value) {
+      const text = String(value || "");
+      const matched = text.match(/^(\d{4})[-.\/](\d{1,2})[-.\/](\d{1,2})(.*)$/);
+      if (!matched) return text;
+      return `${matched[2].padStart(2, "0")}/${matched[3].padStart(2, "0")}${matched[4] || ""}`;
+    }
+
+    function renderDeadline(row) {
+      const value = row.deadline || row.deadlineRaw;
+      if (value === null || value === undefined || value === "") return valueOrDash(value);
+      return `<span class="deadline-full">${escapeHtml(value)}</span><span class="deadline-short">${escapeHtml(formatDeadlineShort(value))}</span>`;
+    }
+
     function renderCell(row, key) {
       if (key === "links") return renderLinks(row);
       if (key === "title") return renderTextLink(row, key, row.jobUrl);
       if (key === "company") return renderTextLink(row, key, row.companyInfoUrl);
       if (key === "source") return `<span class="badge source">${escapeHtml(row.source || "-")}</span>`;
       if (key === "category") return `<span class="badge ${row.category === "AI" ? "warn" : ""}">${escapeHtml(row.category || "-")}</span>`;
-      if (key === "deadlineValue") return valueOrDash(row.deadline || row.deadlineRaw);
+      if (key === "deadlineValue") return renderDeadline(row);
       if (key === "employeeCount") return valueOrDash(row.employees);
       if (key === "salesValue") return valueOrDash(row.sales);
       if (key === "ageValue") return valueOrDash(row.companyAge);
