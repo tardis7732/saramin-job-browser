@@ -326,11 +326,18 @@
     tbody tr:hover { background: #f9fbfd; }
     tbody tr:last-child td { border-bottom: 0; }
 
+    @media (min-width: 641px) {
+      thead th:not(:last-child),
+      tbody td:not(:last-child) {
+        border-right: 1px solid #edf1ed;
+      }
+    }
+
     .num { text-align: right; font-variant-numeric: tabular-nums; }
     .muted { color: var(--muted); }
     .missing { color: #98a2b3; }
-    .title-cell { font-weight: 650; }
-    .company-cell { font-weight: 650; }
+    .title-cell { color: #1f2933; font-weight: 750; }
+    .company-cell { color: #2f3631; font-weight: 750; }
     th.category-cell, td.category-cell { width: 8%; }
     th.title-cell, td.title-cell { width: 29%; }
     th.company-cell, td.company-cell { width: 13%; }
@@ -376,13 +383,15 @@
     }
 
     .text-link {
-      color: var(--accent);
+      color: inherit;
       font-weight: inherit;
       text-decoration: none;
     }
 
     .text-link:hover {
+      color: #111827;
       text-decoration: underline;
+      text-decoration-color: #9aa4a0;
     }
 
     .deadline-short {
@@ -395,6 +404,10 @@
       justify-content: flex-end;
       gap: 8px;
       flex-wrap: wrap;
+    }
+
+    .pagination-bottom {
+      margin-top: 12px;
     }
 
     .page-size {
@@ -521,6 +534,24 @@
         align-items: flex-start;
         flex-direction: column;
       }
+      .pagination {
+        width: 100%;
+        justify-content: flex-start;
+        gap: 6px;
+      }
+      .pagination-bottom {
+        margin-top: 8px;
+      }
+      .page-size {
+        flex: 1 1 96px;
+      }
+      .page-size select {
+        min-width: 86px;
+      }
+      .page-button {
+        min-height: 30px;
+        padding: 4px 8px;
+      }
       h1 { font-size: 18px; }
       .updated-at { font-size: 12px; }
 
@@ -582,7 +613,7 @@
         max-width: none !important;
         min-width: 0;
         padding: 6px 7px;
-        border-right: 1px solid var(--line);
+        border-right: 0;
         border-bottom: 1px solid var(--line);
         min-height: 36px;
         font-size: 11px;
@@ -683,7 +714,7 @@
       <div class="header-inner">
         <div class="title-block">
           <h1>영상 AI VFX 채용 공고 회사정보 정렬</h1>
-          <div class="updated-at">마지막 업데이트: 2026-08-21 16:48 KST</div>
+          <div class="updated-at">마지막 업데이트: 2026-08-21 17:01 KST</div>
         </div>
         <div class="stats" aria-label="데이터 요약">
           <div class="stat"><span>공고</span><strong id="jobTotal">0</strong></div>
@@ -746,7 +777,7 @@
     <main>
       <div class="result-bar">
         <div><strong id="visibleCount">0</strong>건 표시</div>
-        <div class="pagination">
+        <div class="pagination pagination-top">
           <div id="sortSummary"></div>
           <label class="page-size">
             표시
@@ -767,6 +798,20 @@
           <thead id="tableHead"></thead>
           <tbody id="tableBody"></tbody>
         </table>
+      </div>
+      <div class="pagination pagination-bottom" aria-label="페이지 이동">
+        <label class="page-size">
+          표시
+          <select id="pageSizeSelectBottom">
+            <option value="100">100</option>
+            <option value="500" selected>500</option>
+            <option value="1000">1000</option>
+            <option value="0">제한없음</option>
+          </select>
+        </label>
+        <button id="prevButtonBottom" class="page-button" type="button">이전</button>
+        <span id="pageSummaryBottom" class="page-summary">1 / 1</span>
+        <button id="nextButtonBottom" class="page-button" type="button">다음</button>
       </div>
     </main>
   </div>
@@ -855,12 +900,20 @@
       visibleCount: document.getElementById("visibleCount"),
       sortSummary: document.getElementById("sortSummary"),
       pageSizeSelect: document.getElementById("pageSizeSelect"),
+      pageSizeSelectBottom: document.getElementById("pageSizeSelectBottom"),
       prevButton: document.getElementById("prevButton"),
+      prevButtonBottom: document.getElementById("prevButtonBottom"),
       nextButton: document.getElementById("nextButton"),
+      nextButtonBottom: document.getElementById("nextButtonBottom"),
       pageSummary: document.getElementById("pageSummary"),
+      pageSummaryBottom: document.getElementById("pageSummaryBottom"),
       tableHead: document.getElementById("tableHead"),
       tableBody: document.getElementById("tableBody")
     };
+    const pageSizeSelects = [els.pageSizeSelect, els.pageSizeSelectBottom];
+    const prevButtons = [els.prevButton, els.prevButtonBottom];
+    const nextButtons = [els.nextButton, els.nextButtonBottom];
+    const pageSummaries = [els.pageSummary, els.pageSummaryBottom];
     let categoryInputs = [];
     let pendingRender = 0;
     const sortedRowsCache = {
@@ -1150,7 +1203,9 @@
         input.checked = state.categorySet.has(input.value);
       });
       els.filledOnly.checked = state.filledOnly;
-      els.pageSizeSelect.value = String(state.pageSize);
+      pageSizeSelects.forEach((select) => {
+        select.value = String(state.pageSize);
+      });
       els.ascButton.classList.toggle("active", state.direction === "asc");
       els.descButton.classList.toggle("active", state.direction === "desc");
     }
@@ -1174,9 +1229,15 @@
 
     function updatePagination(totalRows, pageInfo) {
       els.visibleCount.textContent = `${pageInfo.start.toLocaleString("ko-KR")}-${pageInfo.end.toLocaleString("ko-KR")} / ${totalRows.toLocaleString("ko-KR")}`;
-      els.pageSummary.textContent = `${state.page.toLocaleString("ko-KR")} / ${pageInfo.pageCount.toLocaleString("ko-KR")}`;
-      els.prevButton.disabled = !state.pageSize || state.page <= 1;
-      els.nextButton.disabled = !state.pageSize || state.page >= pageInfo.pageCount;
+      pageSummaries.forEach((summary) => {
+        summary.textContent = `${state.page.toLocaleString("ko-KR")} / ${pageInfo.pageCount.toLocaleString("ko-KR")}`;
+      });
+      prevButtons.forEach((button) => {
+        button.disabled = !state.pageSize || state.page <= 1;
+      });
+      nextButtons.forEach((button) => {
+        button.disabled = !state.pageSize || state.page >= pageInfo.pageCount;
+      });
     }
 
     function render() {
@@ -1283,18 +1344,24 @@
         state.page = 1;
         render();
       });
-      els.pageSizeSelect.addEventListener("change", () => {
-        state.pageSize = Number(els.pageSizeSelect.value);
-        state.page = 1;
-        render();
+      pageSizeSelects.forEach((select) => {
+        select.addEventListener("change", () => {
+          state.pageSize = Number(select.value);
+          state.page = 1;
+          render();
+        });
       });
-      els.prevButton.addEventListener("click", () => {
-        if (state.page > 1) state.page -= 1;
-        render();
+      prevButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          if (state.page > 1) state.page -= 1;
+          render();
+        });
       });
-      els.nextButton.addEventListener("click", () => {
-        state.page += 1;
-        render();
+      nextButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          state.page += 1;
+          render();
+        });
       });
 
       updateControls();
