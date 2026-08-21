@@ -505,6 +505,8 @@
       }
 
       tbody tr {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         border: 1px solid var(--line);
         border-radius: 6px;
         background: var(--panel);
@@ -517,24 +519,35 @@
 
       td {
         display: grid;
-        grid-template-columns: 58px minmax(0, 1fr);
-        gap: 6px;
-        padding: 5px 8px;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 2px;
+        width: auto;
+        min-width: 0;
+        padding: 4px 6px;
+        border-right: 1px solid var(--line);
         border-bottom: 1px solid var(--line);
-        min-height: 26px;
-        font-size: 12px;
-        line-height: 1.28;
+        min-height: 32px;
+        font-size: 11px;
+        line-height: 1.18;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       td:last-child {
+        border-right: 0;
         border-bottom: 0;
       }
 
       td::before {
         content: attr(data-label);
         color: var(--muted);
-        font-size: 11px;
+        font-size: 10px;
         font-weight: 700;
+        line-height: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       td.num {
@@ -545,15 +558,37 @@
         display: none;
       }
 
-      .title-cell, .company-cell {
+      td.title-cell {
+        grid-column: 1 / -1;
+        display: block;
+        width: 100%;
+        padding: 6px 8px 5px;
+        border-right: 0;
         font-size: 12px;
+        line-height: 1.24;
+        white-space: normal;
+      }
+
+      td.title-cell::before {
+        display: none;
+      }
+
+      td.title-cell .text-link {
+        display: -webkit-box;
+        overflow: hidden;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+      }
+
+      .company-cell {
+        font-size: 11px;
         font-weight: 650;
       }
 
       .badge {
-        min-height: 20px;
-        padding: 2px 6px;
-        font-size: 11px;
+        min-height: 18px;
+        padding: 1px 5px;
+        font-size: 10px;
       }
 
       .deadline-full {
@@ -576,7 +611,7 @@
       <div class="header-inner">
         <div class="title-block">
           <h1>영상 AI VFX 채용 공고 회사정보 정렬</h1>
-          <div class="updated-at">마지막 업데이트: 2026-08-21 09:48 KST</div>
+          <div class="updated-at">마지막 업데이트: 2026-08-21 10:03 KST</div>
         </div>
         <div class="stats" aria-label="데이터 요약">
           <div class="stat"><span>공고</span><strong id="jobTotal">0</strong></div>
