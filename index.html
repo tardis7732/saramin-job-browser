@@ -611,7 +611,7 @@
       <div class="header-inner">
         <div class="title-block">
           <h1>영상 AI VFX 채용 공고 회사정보 정렬</h1>
-          <div class="updated-at">마지막 업데이트: 2026-08-21 10:10 KST</div>
+          <div class="updated-at">마지막 업데이트: 2026-08-21 10:26 KST</div>
         </div>
         <div class="stats" aria-label="데이터 요약">
           <div class="stat"><span>공고</span><strong id="jobTotal">0</strong></div>
@@ -711,6 +711,7 @@
       ["location", "회사위치", "text"],
       ["postingCount", "공고수", "number"]
     ];
+    const sortTypeByKey = new Map(sortOptions.map(([key, , type]) => [key, type]));
 
     const columns = {
       jobs: [
@@ -740,6 +741,7 @@
     const state = {
       mode: "jobs",
       categories: [],
+      categorySet: new Set(),
       query: "",
       sortKey: "employeeCount",
       direction: "desc",
@@ -774,6 +776,19 @@
       pageSummary: document.getElementById("pageSummary"),
       tableHead: document.getElementById("tableHead"),
       tableBody: document.getElementById("tableBody")
+    };
+    let categoryInputs = [];
+    let pendingRender = 0;
+    const sortedRowsCache = {
+      mode: "",
+      sortKey: "",
+      direction: "",
+      rows: []
+    };
+    const renderedHead = {
+      mode: "",
+      sortKey: "",
+      direction: ""
     };
 
     function hasAnyCompanyInfo(row) {
@@ -848,8 +863,7 @@
     }
 
     function getSortType(key) {
-      const found = sortOptions.find((option) => option[0] === key);
-      return found ? found[2] : "text";
+      return sortTypeByKey.get(key) || "text";
     }
 
     function sortValue(row, key) {
@@ -882,11 +896,13 @@
 
     function filterRows(rows) {
       const query = state.query.trim().toLocaleLowerCase("ko-KR");
+      const categorySet = state.categorySet;
+      const hasCategoryFilter = categorySet.size > 0;
       return rows.filter((row) => {
-        if (state.categories.length) {
+        if (hasCategoryFilter) {
           if (Array.isArray(row.categories)) {
-            if (!row.categories.some((category) => state.categories.includes(category))) return false;
-          } else if (!state.categories.includes(row.category)) {
+            if (!row.categories.some((category) => categorySet.has(category))) return false;
+          } else if (!categorySet.has(row.category)) {
             return false;
           }
         }
@@ -904,6 +920,26 @@
         ].join(" ").toLocaleLowerCase("ko-KR");
         return searchText.includes(query);
       });
+    }
+
+    function syncCategoryStateFromInputs() {
+      state.categories = categoryInputs.filter((input) => input.checked).map((input) => input.value);
+      state.categorySet = new Set(state.categories);
+    }
+
+    function getSortedRows() {
+      if (
+        sortedRowsCache.mode === state.mode &&
+        sortedRowsCache.sortKey === state.sortKey &&
+        sortedRowsCache.direction === state.direction
+      ) {
+        return sortedRowsCache.rows;
+      }
+      sortedRowsCache.mode = state.mode;
+      sortedRowsCache.sortKey = state.sortKey;
+      sortedRowsCache.direction = state.direction;
+      sortedRowsCache.rows = [...getRows()].sort(compareRows);
+      return sortedRowsCache.rows;
     }
 
     function updateSortOptions() {
@@ -947,6 +983,20 @@
       });
     }
 
+    function renderHeadIfNeeded() {
+      if (
+        renderedHead.mode === state.mode &&
+        renderedHead.sortKey === state.sortKey &&
+        renderedHead.direction === state.direction
+      ) {
+        return;
+      }
+      renderHead();
+      renderedHead.mode = state.mode;
+      renderedHead.sortKey = state.sortKey;
+      renderedHead.direction = state.direction;
+    }
+
     function renderBody(rows) {
       if (!rows.length) {
         els.tableBody.innerHTML = `<tr><td colspan="${columns[state.mode].length}" class="empty">표시할 행이 없습니다.</td></tr>`;
@@ -966,8 +1016,8 @@
       updateSortOptions();
       els.modeSelect.value = state.mode;
       els.searchInput.value = state.query;
-      els.categoryChecks.querySelectorAll("input[type='checkbox']").forEach((input) => {
-        input.checked = state.categories.includes(input.value);
+      categoryInputs.forEach((input) => {
+        input.checked = state.categorySet.has(input.value);
       });
       els.filledOnly.checked = state.filledOnly;
       els.pageSizeSelect.value = String(state.pageSize);
@@ -1000,13 +1050,21 @@
     }
 
     function render() {
-      const rows = filterRows(getRows()).sort(compareRows);
+      const rows = filterRows(getSortedRows());
       const pageInfo = paginateRows(rows);
-      renderHead();
+      renderHeadIfNeeded();
       renderBody(pageInfo.rows);
       updatePagination(rows.length, pageInfo);
       const label = sortOptions.find(([key]) => key === state.sortKey)?.[1] || state.sortKey;
       els.sortSummary.textContent = `${label} · ${state.direction === "asc" ? "오름차순" : "내림차순"}`;
+    }
+
+    function scheduleRender() {
+      if (pendingRender) window.cancelAnimationFrame(pendingRender);
+      pendingRender = window.requestAnimationFrame(() => {
+        pendingRender = 0;
+        render();
+      });
     }
 
     function init() {
@@ -1025,11 +1083,13 @@
 
       const categories = Array.from(new Set(JOB_ROWS.map((row) => row.category))).filter(Boolean);
       state.categories = [...categories];
+      state.categorySet = new Set(state.categories);
       els.categoryChecks.innerHTML = categories
         .map(
           (category) => `<label class="check-option"><input type="checkbox" value="${escapeHtml(category)}" checked>${escapeHtml(category)}</label>`
         )
         .join("");
+      categoryInputs = Array.from(els.categoryChecks.querySelectorAll("input[type='checkbox']"));
 
       els.jobTotal.textContent = JOB_ROWS.length.toLocaleString("ko-KR");
       els.companyTotal.textContent = COMPANY_ROWS.length.toLocaleString("ko-KR");
@@ -1048,16 +1108,16 @@
         updateControls();
         render();
       });
-      els.categoryChecks.addEventListener("change", () => {
-        state.categories = Array.from(els.categoryChecks.querySelectorAll("input[type='checkbox']:checked")).map((input) => input.value);
+      els.categoryChecks.addEventListener("change", (event) => {
+        if (!event.target.matches("input[type='checkbox']")) return;
+        syncCategoryStateFromInputs();
         state.page = 1;
-        updateControls();
-        render();
+        scheduleRender();
       });
       els.searchInput.addEventListener("input", () => {
         state.query = els.searchInput.value;
         state.page = 1;
-        render();
+        scheduleRender();
       });
       els.sortSelect.addEventListener("change", () => {
         state.sortKey = els.sortSelect.value;
